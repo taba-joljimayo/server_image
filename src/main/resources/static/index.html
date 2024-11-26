@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Image Test</title>
+</head>
+<body>
+<h1>WebSocket: image post</h1>
+<input type="file" id="imageInput" />
+<button onclick="sendImage()">post</button>
+
+<script>
+    let socket = new WebSocket("ws://localhost:8080/image");
+
+    socket.onopen = function () {
+        console.log("WebSocket 연결됨");
+    };
+
+    socket.onmessage = function (event) {
+        console.log("서버로부터 메시지:", event.data);
+    };
+
+    socket.onclose = function () {
+        console.log("WebSocket 연결 종료");
+    };
+
+    function sendImage() {
+        const fileInput = document.getElementById("imageInput");
+        const file = fileInput.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function () {
+                const arrayBuffer = reader.result;
+                socket.send(arrayBuffer);
+                console.log("이미지 전송 완료!");
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            alert("이미지를 선택하세요!");
+        }
+    }
+</script>
+</body>
+</html>
