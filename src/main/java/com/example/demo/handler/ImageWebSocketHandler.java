@@ -7,9 +7,12 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.stream.Stream;
 
 public class ImageWebSocketHandler implements WebSocketHandler{
 
@@ -33,16 +36,39 @@ public class ImageWebSocketHandler implements WebSocketHandler{
                 partialMessageBuffer.setLength(0); // 버퍼 초기화
 
                 System.out.println("전체 메시지 수신 완료");
-                System.out.println("수신된 Base64 데이터 길이: " + completePayload.length());
 
+                // 디코딩
                 byte[] imageBytes = Base64.getDecoder().decode(completePayload);
-                Files.write(Paths.get("images/received_image.jpg"), imageBytes);
+
+                Path directory = Paths.get("images");
+
+                // 파일 넘버링
+                int nextFileNumber = getNextFileNumber(directory);
+                Path filePath = directory.resolve("image_" + nextFileNumber + ".jpg");
+
+                // 파일 저장
+                Files.write(filePath, imageBytes);
                 System.out.println("이미지 저장 완료!");
             } else {
                 System.out.println("부분 메시지 수신 중...");
             }
         }
 
+    }
+
+    private int getNextFileNumber(Path directory) {
+        try (Stream<Path> files = Files.list(directory)) {
+            return files
+                    .map(path -> path.getFileName().toString())
+                    .filter(name -> name.startsWith("image_") && name.endsWith(".jpg"))
+                    .map(name -> name.replace("image_", "").replace(".jpg", ""))
+                    .mapToInt(Integer::parseInt)
+                    .max()
+                    .orElse(0) + 1;
+        } catch (IOException e) {
+            System.err.println("넘버링 계산 실패: "+ e.getMessage());
+            return 1;
+        }
     }
 
     @Override
